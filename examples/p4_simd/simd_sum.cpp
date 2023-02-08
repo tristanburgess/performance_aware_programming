@@ -49,7 +49,8 @@ u32 __attribute__((target("avx2"))) singleAVX(u32 count, u32 *input) {
 }
 
 int main(int argC, char **argV) {
-    printf("%d\n", singleSSE(4, (u32 []) {1, 2, 3, 4}));
+    printf("%d\n", singleScalar(8, (u32 []) {1, 2, 3, 4, 1, 2, 3, 4}));
+    printf("%d\n", singleSSE(8, (u32 []) {1, 2, 3, 4, 1, 2, 3, 4}));
     printf("%d", singleAVX(8, (u32 []) {1, 2, 3, 4, 1, 2, 3, 4}));
     return 0;
 }
