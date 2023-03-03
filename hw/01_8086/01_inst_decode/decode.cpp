@@ -24,7 +24,7 @@ void decode(u8 buf[]) {
     u8 w = lo & 0x1;
 
     u8 reg = (hi & 0x38) >> 3;
-    u8 rm = (hi & 0x7);
+    u8 rm = hi & 0x7;
 
     // per docs, if d bit is 1, reg register is dest, if d bit is 0, rm register is dest.
     const char* reg_names[] = {reg_table[2 * rm + w], reg_table[2 * reg + w]};
