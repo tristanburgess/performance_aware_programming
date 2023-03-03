@@ -122,7 +122,7 @@ u32 __attribute__((target("avx2"))) quadAVXPtr(u32 count, u32 *input) {
     return  _mm256_cvtsi256_si32(sum);
 }
 
-int main(int argC, char **argV) {
+int main(int arg_c, char **arg_v) {
     printf("%d\n", quadScalarPtr(32, (u32 []) {1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4}));
     printf("%d\n", singleAVX(32, (u32 []) {1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4}));
     printf("%d\n", dualAVX(32, (u32 []) {1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4}));

@@ -4,6 +4,6 @@ int __declspec(noinline) add(int a, int b) {
 }
 
 #pragma optimize("", off) // do not optimize away the call to "add"
-int main(int argC, char **argV) {
+int main(int arg_c, char **arg_v) {
     return add(1234, 5678);
 }
