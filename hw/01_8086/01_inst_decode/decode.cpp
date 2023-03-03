@@ -16,14 +16,14 @@ void decode(u8 buf[]) {
     // ensure we're seeing something from the class of MOV REG/MEM instructions
     assert((lo & 0XFC) == 0x88);
 
-    u8 mod = (hi & 0xC0) >> 6;
+    u8 mod = (hi >> 6) & 0x3;
     // ensure we're operating in register-to-register mode
     assert(mod == 0x3);
 
-    u8 d = (lo & 0x2) >> 1;
+    u8 d = (lo >> 1) & 0x1;
     u8 w = lo & 0x1;
 
-    u8 reg = (hi & 0x38) >> 3;
+    u8 reg = (hi >> 3) & 0x7;
     u8 rm = hi & 0x7;
 
     // per docs, if d bit is 1, reg register is dest, if d bit is 0, rm register is dest.
