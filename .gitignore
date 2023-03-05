@@ -1,8 +1,10 @@
 # Prerequisites
 *.d
-build/
 .vs/
 .vscode/
+build/
+target/
+Cargo.lock
 
 # Compiled Object files
 *.slo
