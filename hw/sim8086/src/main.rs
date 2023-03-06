@@ -13,6 +13,7 @@ fn main() {
 
     let bytes: Vec<u8> = fs::read(&args[1]).expect(&format!("failed to open input file {}", args[1]));
 
+    println!("{:x?}", bytes);
     println!("; {} disassembly", args[1]);
     println!("bits 16");
     for instr in decode(bytes) {
