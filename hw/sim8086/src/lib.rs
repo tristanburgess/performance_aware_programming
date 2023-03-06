@@ -7,7 +7,10 @@ pub fn decode(bytes: Vec<u8>) -> Vec<String> {
     let mut insts = Vec::new();
 
     while idx < bytes.len() {
-        if (bytes[idx] & 0xFC) == 0x88 {
+        // Register/memory to/from register and Immediate to register/memory
+        if (bytes[idx] & 0xFC) == 0x88 || (bytes[idx] & 0xC6) == 0xC6 {
+            let is_imm: bool = (bytes[idx] & 0xC6) == 0xC6;
+
             let d: u8 = (bytes[idx] >> 1) & 0x1;
             let w: u8 = bytes[idx] & 0x1;
     
@@ -26,35 +29,31 @@ pub fn decode(bytes: Vec<u8>) -> Vec<String> {
                     }
                     else {
                         idx += 1;
-                        let mut data: u16 = bytes[idx].into();
+                        let mut disp: u16 = bytes[idx].into();
                         idx += 1;
-                        data = data | ((bytes[idx] as u16) << 8);
+                        disp = disp | ((bytes[idx] as u16) << 8);
     
-                        rm_reg_name = format!("[{}]", data.to_string());
+                        rm_reg_name = format!("[{}]", disp.to_string());
                     }
                 
                 },
-                0x1 => {
+                0x1 | 0x2 => {
                     idx += 1;
-                    let data: u8 = bytes[idx].into();
-                    let mut data_fmt = String::new();
-                    if data != 0 {
-                        data_fmt = format!(" + {}", data);
+                    let mut disp: i16 = bytes[idx] as i16;
+                    let mut disp_fmt = String::new();
+                    if mode == 0x2 {
+                        idx += 1;
+                        disp = disp | ((bytes[idx] as i16) << 8);
+                    } else {
+                        disp = (((bytes[idx] as u16) << 8) as i16) >> 8;
+                    }
+                    if disp > 0 {
+                        disp_fmt = format!(" + {}", disp);
+                    } else if disp < 0 {
+                        disp_fmt = format!(" - {}", disp.abs());  
                     }
 
-                    rm_reg_name = format!("[{}{}]", EA_CALC_TABLE[rm as usize], data_fmt);
-                },
-                0x2 => {
-                    idx += 1;
-                    let mut data: u16 = bytes[idx].into();
-                    let mut data_fmt = String::new();
-                    idx += 1;
-                    data = data | ((bytes[idx] as u16) << 8);
-                    if data != 0 {
-                        data_fmt = format!(" + {}", data);
-                    }
-
-                    rm_reg_name = format!("[{}{}]", EA_CALC_TABLE[rm as usize], data_fmt); 
+                    rm_reg_name = format!("[{}{}]", EA_CALC_TABLE[rm as usize], disp_fmt);
                 },
                 0x3 => {
                     rm_reg_name = format!("{}", REG_TABLE[(2 * rm + w) as usize]);
@@ -63,14 +62,26 @@ pub fn decode(bytes: Vec<u8>) -> Vec<String> {
                     panic!("Mode must've been incorrectly parsed. We should never reach this case!")
                 },
             }
-            
-            // per docs, if d bit is 1, reg register is dest, if d bit is 0, rm register is dest.
-            let reg_names: &[&str] = &[&rm_reg_name, REG_TABLE[(2 * reg + w) as usize]];
-            insts.push(format!("{} {}, {}", INST_STR, reg_names[(d % 2) as usize], reg_names[((d + 1) % 2) as usize]));
 
-            idx += 1;
-            
-        } else if (bytes[idx] & 0xF0) == 0xB0 {
+            if is_imm {
+                idx += 1;
+                let mut data: u16 = bytes[idx].into();
+                let mut data_fmt = format!("byte {}", data);
+                if w == 1 {
+                    idx += 1;
+                    data = data | ((bytes[idx] as u16) << 8);
+                    data_fmt = format!("word {}", data);
+                }
+
+                insts.push(format!("{} {}, {}", INST_STR, rm_reg_name, data_fmt));
+            } else {
+                // per docs, if d bit is 1, reg register is dest, if d bit is 0, rm register is dest.
+                let reg_names: &[&str] = &[&rm_reg_name, REG_TABLE[(2 * reg + w) as usize]];
+                insts.push(format!("{} {}, {}", INST_STR, reg_names[(d % 2) as usize], reg_names[((d + 1) % 2) as usize]));
+            }
+        }
+        // Immediate to register 
+        else if (bytes[idx] & 0xF0) == 0xB0 {
             let w: u8 = (bytes[idx] >> 3) & 0x1;
             let reg: u8 = bytes[idx] & 0x7;
     
@@ -81,17 +92,30 @@ pub fn decode(bytes: Vec<u8>) -> Vec<String> {
             let mut data: u16 = bytes[idx].into();
             if w == 1 {
                 idx += 1;
-
                 data = data | ((bytes[idx] as u16) << 8);
             }
 
             insts.push(format!("{} {}, {}", INST_STR, reg_name, data));
+        }
+        // Memory to/from accumulator  
+        else if (bytes[idx] & 0xA0) == 0xA0 {
+            let d: u8 = (bytes[idx] >> 1) & 0x1;
+            let w: u8 = bytes[idx] & 0x1;
 
             idx += 1;
-        } else {
+            let mut addr: u16 = bytes[idx].into();
+            idx += 1;
+            addr = addr | ((bytes[idx] as u16) << 8);
+    
+            let reg_names: &[&str] = &[REG_TABLE[w as usize], &format!("[{}]", addr.to_string())];
+            insts.push(format!("{} {}, {}", INST_STR, reg_names[(d % 2) as usize], reg_names[((d + 1) % 2) as usize]));
+        } 
+        else {
             // TODO: proper error handling
             panic!("Unsupported instruction found! Exiting...");
         }
+
+        idx += 1;
     }
 
     return insts;
