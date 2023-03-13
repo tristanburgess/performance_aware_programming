@@ -42,9 +42,9 @@ mod mov_tests {
     fn mov_byte_imm_to_reg() {
         let asm: Vec<String> = vec![
             "mov cx, 12".to_string(),
-            format!("mov cx, {}", (-12i16) as u16),
+            "mov cx, -12".to_string(),
             "mov bl, 12".to_string(),
-            format!("mov bh, {}", (-12i8) as u8),
+            "mov bh, -12".to_string(),
         ];
         let buf = Buf::new(vec![
             0xb9, 0xc, 0x0, 0xb9, 0xf4, 0xff, 0xb3, 0xc, 0xb7, 0xf4
@@ -56,7 +56,7 @@ mod mov_tests {
     fn mov_word_imm_to_reg() {
         let asm: Vec<String> = vec![
             "mov dx, 3948".to_string(),
-            format!("mov dx, {}", (-3948i16) as u16),
+            "mov dx, -3948".to_string(),
         ];
         let buf = Buf::new(vec![
             0xba, 0x6c, 0xf, 0xba, 0x94, 0xf0
