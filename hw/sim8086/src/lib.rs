@@ -87,6 +87,7 @@ pub enum DecodeError {
     BufferError(BufferError),
     InvalidMode,
     InvalidDBitValue,
+    InvalidLabelRelPos,
     InvalidSWBitValue,
     UnknownInstruction
 }
@@ -241,7 +242,8 @@ fn decode_mrm(mut inst: Instruction, buf: &mut Buf) -> Result<String, DecodeErro
 }
 
 pub fn decode(mut buf: Buf) -> Result<Vec<String>, DecodeError> {
-    let mut insts = Vec::new();
+    let mut insts: Vec<String> = Vec::new();
+    let mut labels: Vec<(usize, String)> = Vec::new();
 
     while !buf.is_at_end() {
         let inst_byte: u8 = buf.read_u8()?;
@@ -297,11 +299,30 @@ pub fn decode(mut buf: Buf) -> Result<Vec<String>, DecodeError> {
             0x70..=0x7F | 0xE0..=0xE3 => {
                 let mut ret_table_idx: usize = (inst_byte & 0xF) as usize;
                 if inst_byte & 0xF0 == 0xE0 {
-                    ret_table_idx += 0xF;
+                    ret_table_idx += 0x10;
                 }
                 inst.name = format!("{}", RET_TABLE[ret_table_idx as usize]);
-                let ip_inc: i16 = buf.read_i8()?;
-                insts.push(format!("{} {}", inst.name, ip_inc));
+    
+                let rpos: i16 = buf.read_i8()? / 2;
+                let lpos: usize = if rpos >= 1 {
+                    insts.len().saturating_add((rpos.abs() + 1) as usize)
+                } else if rpos <= -1 {
+                    insts.len().saturating_sub((rpos.abs() - 1) as usize)
+                } else {
+                    return Err(DecodeError::InvalidLabelRelPos)
+                };
+                let mut label: String = Default::default();
+                for (p, l) in &labels {
+                    if *p == lpos {
+                        label = l.clone();
+                    }
+                }
+                if label.is_empty() {
+                    label = format!("label_{}", labels.len() + 1);
+                    labels.push((lpos, label.clone()));
+                }
+
+                insts.push(format!("{} {}", inst.name, label));
             }
             _ => {
                 return Err(DecodeError::UnknownInstruction);
@@ -309,5 +330,20 @@ pub fn decode(mut buf: Buf) -> Result<Vec<String>, DecodeError> {
         };
     }
 
-    return Ok(insts);
+    let asm_len: usize = insts.len() + labels.len();
+    let mut asm: Vec<String> = vec![Default::default(); asm_len];
+    let mut cur_label_idx: usize = 0;
+    let mut cur_inst_idx: usize = 0;
+    labels.sort_by(|a, b| a.0.cmp(&b.0));
+    for (p, l) in labels {
+        asm[p + cur_label_idx] = format!("{}:", l);
+        cur_label_idx += 1;
+    }
+    for i in 0..asm_len {
+        if asm[i].is_empty() {
+            asm[i] = insts[cur_inst_idx].clone();
+            cur_inst_idx += 1;
+        }
+    }
+    return Ok(asm);
 }
