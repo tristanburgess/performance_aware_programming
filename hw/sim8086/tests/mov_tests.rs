@@ -1,8 +1,8 @@
 
 #[cfg(test)]
 mod mov_tests {
-    use sim8086::Buf;
-    use sim8086::decode;
+    use sim8086::buf::Buf;
+    use sim8086::decode::decode;
 
     #[test]
     fn mov_single_reg() {

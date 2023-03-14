@@ -2,13 +2,13 @@ use std::env;
 use std::fs;
 use std::process;
 
-use sim8086::Buf;
-use sim8086::decode;
+use sim8086::buf::Buf;
+use sim8086::decode::{decode, DecodeError};
 
 #[derive(Debug)]
 pub enum SimError {
     IoError(std::io::Error),
-    DecodeError(sim8086::DecodeError),
+    DecodeError(DecodeError),
 }
 
 impl From<std::io::Error> for SimError {
@@ -17,8 +17,8 @@ impl From<std::io::Error> for SimError {
     }
 }
 
-impl From<sim8086::DecodeError> for SimError {
-    fn from(err: sim8086::DecodeError) -> Self {
+impl From<DecodeError> for SimError {
+    fn from(err: DecodeError) -> Self {
         SimError::DecodeError(err)
     }
 }
@@ -31,7 +31,6 @@ fn main() -> Result<(), SimError> {
     }
 
     let bytes: Vec<u8> = fs::read(&args[1])?;
-    println!("{:#04x?}", bytes);
     let buf = Buf::new(bytes);
     println!("; {} disassembly", args[1]);
     println!("bits 16");
